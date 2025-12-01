@@ -9,5 +9,3 @@ document.addEventListener('DOMContentLoaded', () => {
         showNotification('Произошла непредвиденная ошибка', 'error');
     });
 });
-
-window.showNotification = showNotification;

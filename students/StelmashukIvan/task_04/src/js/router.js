@@ -76,8 +76,7 @@ async function navigate() {
 
 export function initRouter() {
     route('/items', async ({ query }) => {
-        const page = parseInt(query.page) || 1;
-        await renderItems({ page });
+        await renderItems({ query });
     });
     route('/items/:id', renderItemDetail);
     route('/new', renderItemNew);
@@ -97,7 +96,7 @@ export function updateQueryParams(params) {
     const searchParams = new URLSearchParams();
     
     Object.entries(params).forEach(([key, value]) => {
-        if (value) searchParams.set(key, value);
+        if (value !== undefined && value !== null && value !== '') searchParams.set(key, value);
     });
     
     const queryString = searchParams.toString();

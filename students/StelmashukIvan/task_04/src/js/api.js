@@ -4,23 +4,16 @@ const MOCK_DELAY = 500;
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 let mockMemes = JSON.parse(localStorage.getItem('memesCollection')) || [];
-
-let nextId = 1;
+let nextId = mockMemes.length > 0 ? Math.max(...mockMemes.map(m => m.id)) + 1 : 1;
 
 function saveToStorage() {
     localStorage.setItem('memesCollection', JSON.stringify(mockMemes));
 }
 
-if (mockMemes.length > 0) {
-    nextId = Math.max(...mockMemes.map(m => m.id)) + 1;
-}
-
 class MemesAPI {
     async getItems(search = '', page = 1, limit = 6) {
         await delay(MOCK_DELAY);
-
         let filteredMemes = mockMemes;
-
         if (search) {
             const searchLower = search.toLowerCase();
             filteredMemes = mockMemes.filter(meme =>
@@ -29,10 +22,8 @@ class MemesAPI {
                 meme.tags.some(tag => tag.toLowerCase().includes(searchLower))
             );
         }
-
         const start = (page - 1) * limit;
         const end = start + limit;
-
         return {
             data: filteredMemes.slice(start, end),
             total: filteredMemes.length
@@ -41,27 +32,22 @@ class MemesAPI {
 
     async getItem(id) {
         await delay(MOCK_DELAY);
-        
-        const itemId = parseInt(id);
+        const itemId = parseInt(id, 10);
         const item = mockMemes.find(m => m.id === itemId);
-        
         if (!item) {
             throw new Error(`Мем с ID ${id} не найден`);
         }
-        
         return { data: item };
     }
 
     async createItem(itemData) {
         await delay(MOCK_DELAY);
-        
         if (!itemData.title?.trim()) {
             throw new Error('Название обязательно');
         }
         if (!itemData.description?.trim()) {
             throw new Error('Описание обязательно');
         }
-        
         const newItem = {
             id: nextId++,
             title: itemData.title.trim(),
@@ -70,7 +56,6 @@ class MemesAPI {
             tags: itemData.tags || [],
             createdAt: new Date().toISOString().split('T')[0]
         };
-        
         mockMemes.unshift(newItem);
         saveToStorage();
         return { data: newItem };
@@ -78,20 +63,17 @@ class MemesAPI {
 
     async updateItem(id, itemData) {
         await delay(MOCK_DELAY);
-        
-        const itemId = parseInt(id);
+        const itemId = parseInt(id, 10);
         const index = mockMemes.findIndex(m => m.id === itemId);
         if (index === -1) {
             throw new Error('Мем не найден');
         }
-        
         if (!itemData.title?.trim()) {
             throw new Error('Название обязательно');
         }
         if (!itemData.description?.trim()) {
             throw new Error('Описание обязательно');
         }
-        
         const updatedItem = {
             ...mockMemes[index],
             title: itemData.title.trim(),
@@ -99,7 +81,6 @@ class MemesAPI {
             image: itemData.image || mockMemes[index].image,
             tags: itemData.tags || []
         };
-        
         mockMemes[index] = updatedItem;
         saveToStorage();
         return { data: updatedItem };
@@ -107,13 +88,11 @@ class MemesAPI {
 
     async deleteItem(id) {
         await delay(MOCK_DELAY);
-        
-        const itemId = parseInt(id);
+        const itemId = parseInt(id, 10);
         const index = mockMemes.findIndex(m => m.id === itemId);
         if (index === -1) {
             throw new Error('Мем не найден');
         }
-        
         mockMemes.splice(index, 1);
         saveToStorage();
         return { message: 'Мем успешно удален' };

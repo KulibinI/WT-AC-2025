@@ -32,23 +32,29 @@ function debounce(func, wait) {
     };
 }
 
+async function prefetchItem(id) {
+    try {
+        await memesAPI.getItem(id);
+    } catch (error) {
+
+    }
+}
+
 export async function renderItems({ query } = {}) {
     try {
         const search = query?.search || '';
         const page = parseInt(query?.page) || 1;
         const limit = 6;
-
         const result = await memesAPI.getItems(search, page, limit);
-
         let html = `
             <header class="page-header">
                 <h2>Все мемы</h2>
             </header>
             
             <div class="search-container">
-                <input 
-                    type="text" 
-                    id="searchInput" 
+                <input
+                    type="text"
+                    id="searchInput"
                     class="search-input"
                     placeholder="Поиск мемов..."
                     value="${escapeHtml(search)}"
@@ -56,7 +62,6 @@ export async function renderItems({ query } = {}) {
                 >
             </div>
         `;
-
         if (result.total === 0) {
             html += `
                 <div class="empty-state">
@@ -69,12 +74,10 @@ export async function renderItems({ query } = {}) {
             app.innerHTML = html;
             return;
         }
-
         html += `<div class="items-grid">`;
-
         result.data.forEach(meme => {
             html += `
-                <article class="item-card" onclick="location.hash='#/items/${meme.id}'" role="button" tabindex="0">
+                <article class="item-card" data-id="${meme.id}" role="button" tabindex="0">
                     <img src="${escapeHtml(meme.image)}" alt="${escapeHtml(meme.title)}">
                     <div class="item-card-content">
                         <h3>${escapeHtml(meme.title)}</h3>
@@ -83,9 +86,7 @@ export async function renderItems({ query } = {}) {
                 </article>
             `;
         });
-
         html += `</div>`;
-
         const totalPages = Math.ceil(result.total / limit);
         html += `
             <footer class="pagination-container">
@@ -95,13 +96,13 @@ export async function renderItems({ query } = {}) {
                 <nav class="pagination-nav" aria-label="Навигация по страницам">
                     <div class="pagination-controls">
                         ${page > 1 ? `
-                            <a href="#/items?page=${page - 1}&search=${encodeURIComponent(search)}" 
+                            <a href="#/items?page=${page - 1}&search=${encodeURIComponent(search)}"
                                class="btn btn-secondary" aria-label="Предыдущая страница">
                                 Назад
                             </a>
                         ` : ''}
                         ${page < totalPages ? `
-                            <a href="#/items?page=${page + 1}&search=${encodeURIComponent(search)}" 
+                            <a href="#/items?page=${page + 1}&search=${encodeURIComponent(search)}"
                                class="btn btn-primary" aria-label="Следующая страница">
                                 Далее
                             </a>
@@ -110,9 +111,7 @@ export async function renderItems({ query } = {}) {
                 </nav>
             </footer>
         `;
-
         app.innerHTML = html;
-
         const searchInput = document.getElementById('searchInput');
         const debouncedSearch = debounce((value) => {
             updateQueryParams({ search: value, page: 1 });
@@ -128,6 +127,20 @@ export async function renderItems({ query } = {}) {
             }
         });
 
+        const cards = document.querySelectorAll('.item-card');
+        cards.forEach(card => {
+            const id = card.dataset.id;
+            card.addEventListener('mouseover', () => prefetchItem(id));
+            card.addEventListener('focus', () => prefetchItem(id));
+            card.addEventListener('click', () => {
+                location.hash = `#/items/${id}`;
+            });
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    location.hash = `#/items/${id}`;
+                }
+            });
+        });
     } catch (error) {
         app.innerHTML = `
             <div class="error-state">
@@ -142,7 +155,6 @@ export async function renderItems({ query } = {}) {
 export async function renderItemDetail({ params }) {
     try {
         const { data } = await memesAPI.getItem(params.id);
-
         app.innerHTML = `
             <article class="item-detail">
                 <div class="item-detail-header">
@@ -177,7 +189,6 @@ export async function renderItemDetail({ params }) {
                             <h3>Информация</h3>
                             <p><small>Создан: ${data.createdAt}</small></p>
                         </section>
-
                         <div class="item-detail-actions">
                             <a href="#/items/${data.id}/edit" class="btn btn-primary">
                                 Редактировать
@@ -190,7 +201,6 @@ export async function renderItemDetail({ params }) {
                 </div>
             </article>
         `;
-
         const deleteBtn = document.getElementById('deleteBtn');
         
         deleteBtn.onclick = async () => {
@@ -205,7 +215,6 @@ export async function renderItemDetail({ params }) {
                 }
             }
         };
-
     } catch (error) {
         app.innerHTML = `
             <div class="error-state">
@@ -251,57 +260,53 @@ function formTemplate(title, data = {}) {
             <form id="memeForm" class="meme-form">
                 <div class="form-group">
                     <label for="titleInput">Название *</label>
-                    <input 
-                        id="titleInput" 
-                        type="text" 
-                        required 
+                    <input
+                        id="titleInput"
+                        type="text"
+                        required
                         value="${escapeHtml(data.title || '')}"
                         aria-required="true"
                         placeholder="Введите название мема"
                     >
                     <div class="form-hint">Обязательное поле</div>
                 </div>
-
                 <div class="form-group">
                     <label for="descInput">Описание *</label>
-                    <textarea 
-                        id="descInput" 
-                        required 
+                    <textarea
+                        id="descInput"
+                        required
                         aria-required="true"
                         placeholder="Опишите ваш мем"
                         rows="4"
                     >${escapeHtml(data.description || '')}</textarea>
                     <div class="form-hint">Обязательное поле</div>
                 </div>
-
                 <div class="form-group">
                     <label for="imageInput">URL картинки</label>
-                    <input 
-                        id="imageInput" 
-                        type="url" 
+                    <input
+                        id="imageInput"
+                        type="url"
                         value="${escapeHtml(data.image || '')}"
                         placeholder="https://example.com/image.jpg"
                         pattern="https?://.+"
                     >
                     <div class="form-hint">Оставьте пустым для изображения по умолчанию</div>
                 </div>
-
                 <div class="form-group">
                     <label for="tagsInput">Теги</label>
-                    <input 
-                        id="tagsInput" 
-                        type="text" 
+                    <input
+                        id="tagsInput"
+                        type="text"
                         value="${data.tags?.map(t => escapeHtml(t)).join(', ') || ''}"
                         placeholder="мем, юмор, интернет"
                     >
                     <div class="form-hint">Введите теги через запятую</div>
                 </div>
-
                 <div class="form-actions">
                     <button type="submit" id="saveBtn" class="btn btn-primary">
                         Сохранить
                     </button>
-                    <a href="${data.id ? `#/items/${data.id}` : '#/items'}" 
+                    <a href="${data.id ? `#/items/${data.id}` : '#/items'}"
                        class="btn btn-secondary">
                         Отмена
                     </a>
@@ -360,10 +365,10 @@ function setupForm(mode, id = null) {
             }
         } catch (err) {
             showNotification(err.message, 'error');
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Сохранить';
         } finally {
             isSubmitting = false;
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Сохранить';
         }
     });
 }
